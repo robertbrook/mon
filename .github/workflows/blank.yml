@@ -19,6 +19,10 @@ jobs:
   build:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
+    
+    # Set permissions for GITHUB_TOKEN
+    permissions:
+      contents: write
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -34,3 +38,31 @@ jobs:
         run: |
           echo Add other actions to build,
           echo test, and deploy your project.
+      
+      # Create JSON file with workflow run details
+      - name: Create action run JSON file
+        run: |
+          cat > action_run.json << EOF
+          {
+            "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+            "run_id": "${{ github.run_id }}",
+            "github_actor": "${{ github.actor }}"
+          }
+          EOF
+          echo "Created action_run.json with the following content:"
+          cat action_run.json
+      
+      # Commit and push the JSON file back to repository
+      - name: Commit and push action run JSON
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add action_run.json
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Update action_run.json [skip ci]"
+            git push
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
